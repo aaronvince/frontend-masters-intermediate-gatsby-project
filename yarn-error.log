@@ -1,0 +1,38 @@
+Arguments: 
+  /usr/local/Cellar/node/17.8.0/bin/node /usr/local/Cellar/yarn/1.22.18/libexec/bin/yarn.js
+
+PATH: 
+  /Users/aaronvince/bin:/usr/local/bin:/Library/Frameworks/Python.framework/Versions/3.8/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin
+
+Yarn version: 
+  1.22.18
+
+Node version: 
+  17.8.0
+
+Platform: 
+  darwin x64
+
+Trace: 
+  SyntaxError: /Users/aaronvince/GitHub/frontend-masters-intermediate-gatsby-project/package.json: Unexpected token } in JSON at position 166
+      at JSON.parse (<anonymous>)
+      at /usr/local/Cellar/yarn/1.22.18/libexec/lib/cli.js:1625:59
+      at Generator.next (<anonymous>)
+      at step (/usr/local/Cellar/yarn/1.22.18/libexec/lib/cli.js:310:30)
+      at /usr/local/Cellar/yarn/1.22.18/libexec/lib/cli.js:321:13
+
+npm manifest: 
+  {
+      "private": true,
+      "workspaces":["site"],
+      "scripts":{
+          "develop": "yarn workspace site develop",
+          "build": "yarn workspace site build",
+      }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
