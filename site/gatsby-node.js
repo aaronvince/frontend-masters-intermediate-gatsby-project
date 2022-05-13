@@ -1,24 +1,24 @@
-const fetch = require('node-fetch')
-// const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const { createRemoteFileNode } = require('gatsby-source-filesystem')
+const fetch = require('node-fetch');
+const { createRemoteFileNode } = require('gatsby-source-filesystem');
+const slugify = require('slugify');
 
-const authors = require('./src/data/authors.json')
-const books = require('./src/data/books.json')
+const authors = require('./src/data/authors.json');
+const books = require('./src/data/books.json');
 
 exports.sourceNodes = ({ actions, createNodeId, createContentDigest }) => {
-    const { createNode, createTypes } = actions
+    const { createNode, createTypes } = actions;
 
     createTypes(`
     type Author implements Node {
-        books: [Book!]! @link(from: "slug" by: "author.slug")
+      books: [Book!]! @link(from: "slug" by: "author.slug")
     }
 
     type Book implements Node {
-        author: Author! @link(from: "author" by: "slug")
+      author: Author! @link(from: "author" by: "slug")
     }
-    `)
+  `);
 
-    authors.forEach(author => {
+    authors.forEach((author) => {
         createNode({
             ...author,
             id: createNodeId(`author-${author.slug}`),
@@ -29,8 +29,8 @@ exports.sourceNodes = ({ actions, createNodeId, createContentDigest }) => {
                 content: JSON.stringify(author),
                 contentDigest: createContentDigest(author),
             },
-        })
-    })
+        });
+    });
 
     books.forEach((book) => {
         createNode({
@@ -45,20 +45,60 @@ exports.sourceNodes = ({ actions, createNodeId, createContentDigest }) => {
             },
         });
     });
-}
+};
 
-exports.createPages = ({ actions }) => {
-    const { createPage } = actions
+exports.createPages = async ({ actions, graphql }) => {
+    const { createPage } = actions;
 
     createPage({
         path: '/custom',
         component: require.resolve('./src/templates/custom.js'),
         context: {
-            title: 'Custom Page',
-            meta: { description: 'This is a custom page.' }
+            title: 'A Custom Page!',
+            meta: {
+                description: 'A custom page with context.',
+            },
         },
-    })
-}
+    });
+
+    const result = await graphql(`
+    query GetBooks {
+      allBook {
+        nodes {
+          id
+          series
+          name
+        }
+      }
+    }
+  `);
+
+    const books = result.data.allBook.nodes;
+
+    books.forEach((book) => {
+        const bookSlug = slugify(book.name, { lower: true });
+
+        if (book.series === null) {
+            createPage({
+                path: `/book/${bookSlug}`,
+                component: require.resolve(`./src/templates/book.js`),
+                context: {
+                    id: book.id,
+                },
+            });
+        } else {
+            const seriesSlug = slugify(book.series, { lower: true });
+
+            createPage({
+                path: `/book/${seriesSlug}/${bookSlug}`,
+                component: require.resolve(`./src/templates/book.js`),
+                context: {
+                    id: book.id,
+                },
+            });
+        }
+    });
+};
 
 exports.createResolvers = ({
     actions,
@@ -68,29 +108,30 @@ exports.createResolvers = ({
     store,
     reporter,
 }) => {
-    const { createNode } = actions
+    const { createNode } = actions;
 
     const resolvers = {
         Book: {
             buyLink: {
                 type: 'String',
-                resolve: (source) => `https://www.powells.com/searchresults?keyword=${source.isbn}`
+                resolve: (source) =>
+                    `https://www.powells.com/searchresults?keyword=${source.isbn}`,
             },
             cover: {
                 type: 'File',
                 resolve: async (source) => {
                     const response = await fetch(
-                        `https://openlibrary.org/isbn/${source.isbn}.json`
-                    )
+                        `https://openlibrary.org/isbn/${source.isbn}.json`,
+                    );
 
                     if (!response.ok) {
                         reporter.warn(
-                            `Error loading details about ${source.name} - get ${response.status} ${response.statusText}`
-                        )
-                        return null
+                            `Error loading details about ${source.name} — got ${response.status} ${response.statusText}`,
+                        );
+                        return null;
                     }
 
-                    const { covers } = await response.json()
+                    const { covers } = await response.json();
 
                     if (covers.length) {
                         return createRemoteFileNode({
@@ -100,13 +141,14 @@ exports.createResolvers = ({
                             createNode,
                             createNodeId,
                             reporter,
-                        })
+                        });
                     } else {
-                        return null
+                        return null;
                     }
-                }
-            }
-        }
-    }
-    createResolvers(resolvers)
-}
+                },
+            },
+        },
+    };
+
+    createResolvers(resolvers);
+};
